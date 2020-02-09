@@ -1,4 +1,4 @@
-//sample code, notQ1
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <CL/cl.h>
