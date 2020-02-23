@@ -19,7 +19,7 @@ int main (void) {
 		scanf("%d", &A[i]);
 	}
 
-	FILE *kernel_code_file = fopen("q2.cl", "r");
+	FILE *kernel_code_file = fopen("q3.cl", "r");
 	if (kernel_code_file == NULL) {
 		printf("Kernel loading failed.");
 		exit(1);
@@ -42,9 +42,7 @@ int main (void) {
 
 	cl_command_queue command_queue = clCreateCommandQueueWithProperties(context, device_id, NULL, &ret);
 
-	cl_mem mem_obj_a = clCreateBuffer(context, CL_MEM_READ_ONLY, LIST_SIZE * sizeof(int), NULL, &ret);
-
-	cl_mem mem_obj_b = clCreateBuffer(context, CL_MEM_WRITE_ONLY, LIST_SIZE * sizeof(int), NULL, &ret);
+	cl_mem mem_obj_a = clCreateBuffer(context, CL_MEM_READ_WRITE, LIST_SIZE * sizeof(int), NULL, &ret);
 
 	ret = clEnqueueWriteBuffer(command_queue, mem_obj_a, CL_TRUE, 0, LIST_SIZE * sizeof(int), A, 0, NULL, NULL);
 
@@ -52,39 +50,45 @@ int main (void) {
 
 	ret = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
 
-	cl_kernel kernel = clCreateKernel(program, "sel_sort", &ret);
-
-	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&mem_obj_a);
-	ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&mem_obj_b);
+	cl_kernel kernel1 = clCreateKernel(program, "odd", &ret);
+	cl_kernel kernel2 = clCreateKernel(program, "even", &ret);
+	ret = clSetKernelArg(kernel1, 0, sizeof(cl_mem), (void *)&mem_obj_a);
+	ret = clSetKernelArg(kernel2, 0, sizeof(cl_mem), (void *)&mem_obj_a);
 
 	size_t global_item_size = LIST_SIZE;
 	size_t local_item_size = 1;
 
-	ret = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);
-
+for(int k=0;k<(LIST_SIZE/2+1);k++)
+{
+	ret = clEnqueueNDRangeKernel(command_queue, kernel1, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);
+	ret = clFinish(command_queue);
+	ret = clEnqueueNDRangeKernel(command_queue, kernel2, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);
 	ret = clFinish(command_queue);
 
-	int *B = (int *)malloc(sizeof(int) * LIST_SIZE);
+}
 
-	ret = clEnqueueReadBuffer(command_queue, mem_obj_b, CL_TRUE, 0, LIST_SIZE * sizeof(int), B, 0, NULL, NULL);
-	printf("After Sorting: ");
+
+	ret = clEnqueueReadBuffer(command_queue, mem_obj_a, CL_TRUE, 0, LIST_SIZE * sizeof(int), A, 0, NULL, NULL);
+	printf("After Sorting: ");                                                                                                                   
 	for (i = 0; i < LIST_SIZE; ++i) {
-		printf("%d ",B[i]);
+		printf("%d ",A[i]);
 	}
 	printf("\n");
 
 	clFlush(command_queue);
-	clReleaseKernel(kernel);
+	clReleaseKernel(kernel1);
+	clReleaseKernel(kernel2);
+
 	clReleaseProgram(program);
 
 	clReleaseMemObject(mem_obj_a);
-	clReleaseMemObject(mem_obj_b);
+	//clReleaseMemObject(mem_obj_b);
 	
 	clReleaseCommandQueue(command_queue);
 	clReleaseContext(context);
 
 	free(A);
-	free(B);
+	//free(B);
 	
 	return 0;
 
@@ -93,19 +97,39 @@ int main (void) {
 
 
 
-
-
-
-
-// __kernel void sel_sort(__global int *A,__global int*B)
+// __kernel void odd(__global int*A)
 // {
 // 	int id=get_global_id(0);
-// 	int pos=0;
-// 	int i;
-// 	int n=get_global_size(0);
-// 	for(i=0;i<n;i++)
-// 		if(A[i]<A[id]||A[i]==A[id]&&i<id)
-// 		pos++;
-// 		B[pos]=A[id];
-
+// 	int n=get_global_size(0),t;
+	
+// 	if(id%2!=0 && (id+1)!=n)
+// 	{
+// 		if(A[id]>A[id+1])
+// 		{
+// 			t=A[id];
+// 			A[id]=A[id+1];
+// 			A[id+1]=t;
+// 		}
+// 	}
 // }
+
+
+// __kernel void even(__global int*A)
+// {
+// 	int id=get_global_id(0);
+// 	int n=get_global_size(0),t;
+
+// 	if(id%2==0 && (id+1)!=n)
+// 	{
+// 		if(A[id]>A[id+1])
+// 		{
+// 			t=A[id];
+// 			A[id]=A[id+1];
+// 			A[id+1]=t;
+// 		}
+// 	}
+// }
+
+
+
+
